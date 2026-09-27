@@ -59,11 +59,13 @@ export async function ask(question: string): Promise<AskResponse> {
   for (const f of expired) reasoning.push(`Fact #${f.factId} was expired in GBrain at ${f.expiredAt} and is shown only as history.`);
   const history = matching.filter((f) => f.factId !== current.factId);
   const text = displayFactText(current.text);
+  const src = current.provenance?.match(/doc (D-\w+) "([^"]+)"(?: dated (\S+))?/);
+  const source = src ? ` Source: "${src[2]}"${src[3] ? ` (${src[3]})` : ""}.` : "";
   return {
     question,
     entity: { slug: mention.slug, name },
     predicate: current.mc?.predicate ? { id: current.mc.predicate, label: PREDICATES[current.mc.predicate]?.label ?? current.mc.predicate } : undefined,
-    answer: `${text} — per GBrain fact #${current.factId}.`,
+    answer: `${text} — per GBrain fact #${current.factId}.${source}`,
     current,
     history,
     retrieval,

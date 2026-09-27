@@ -1,6 +1,7 @@
 // Human review decisions. The ONLY path by which disputed information can change GBrain memory.
 // Nothing is silently overwritten: corrections expire the old GBrain fact with a reason (GBrain keeps it
 // with an audit trail) and write the new fact with provenance pointing back to the review.
+import crypto from "node:crypto";
 import { z } from "zod";
 import type { DecisionResponse, GbrainWrite, ReviewItemView } from "../types";
 import * as gb from "../gbrain/client";
@@ -21,6 +22,36 @@ export class ReviewError extends Error {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * Deterministic GBrain write-intent id (UUID-shaped) per review + operation. GBrain's request_id contract makes a
+ * retried write return the original outcome instead of writing twice, so a decision retried after a partial
+ * failure (e.g. forget succeeded, remember timed out) is idempotent.
+ */
+export function requestId(reviewId: string, op: string, key: string): string {
+  const h = crypto.createHash("sha256").update(`memory-court:${reviewId}:${op}:${key}`).digest("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${((parseInt(h[16], 16) & 0x3) | 0x8).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
+/** Reads GBrain back after a decision and checks the brain reflects it. */
+async function verifyInGbrain(slug: string, expectActive: string[], expectExpired: string[], expectAbsentClaim?: string) {
+  const r = await gb.recall({ entity: slug, include_expired: true, limit: 100 });
+  const facts = r.facts.map((f) => ({ id: String(f.fact_id ?? f.id), expired: Boolean(f.expired_at), text: f.fact }));
+  const checks: { label: string; passed: boolean; detail?: string }[] = [];
+  for (const id of expectActive) {
+    const f = facts.find((x) => x.id === id);
+    checks.push({ label: `fact #${id} is active in GBrain`, passed: Boolean(f && !f.expired), detail: f ? (f.expired ? "expired" : "active") : "not found" });
+  }
+  for (const id of expectExpired) {
+    const f = facts.find((x) => x.id === id);
+    checks.push({ label: `fact #${id} is expired in GBrain (kept with audit trail)`, passed: Boolean(f && f.expired), detail: f ? (f.expired ? "expired" : "still active") : "not found" });
+  }
+  if (expectAbsentClaim) {
+    const leaked = facts.some((x) => !x.expired && x.text.includes(`claim=${expectAbsentClaim}`));
+    checks.push({ label: `rejected claim ${expectAbsentClaim} is not in memory`, passed: !leaked });
+  }
+  return { at: new Date().toISOString(), ok: checks.every((c) => c.passed), checks };
+}
 
 export async function reviewView(id: string): Promise<ReviewItemView> {
   const s = db();
@@ -74,7 +105,7 @@ export async function decide(id: string, input: z.input<typeof DecisionInput>): 
       const reason = `Memory Court ${id}: corrected by ${reviewer}; superseded by ${claim.id} from "${doc.title}"${d.note ? ` — ${d.note}` : ""}`;
       const w: GbrainWrite = { op: "forget", args: { id: item.gbrainFactId, reason }, ok: true, at: new Date().toISOString() };
       try {
-        const r = await gb.forget(item.gbrainFactId, reason);
+        const r = await gb.forget(item.gbrainFactId, reason, requestId(id, "forget", item.gbrainFactId));
         w.result = { id: r.id, expired: r.expired };
         audit("gbrain", "gbrain.forget", `forget fact #${item.gbrainFactId} (expired with audit trail, not deleted)`, { reviewId: id, factId: item.gbrainFactId });
       } catch (e) {
@@ -85,11 +116,11 @@ export async function decide(id: string, input: z.input<typeof DecisionInput>): 
       if (!w.ok) throw new ReviewError(`GBrain forget failed: ${w.error}`, 502);
       if (memoryClaim) memoryClaim.status = "superseded";
     }
-    await commitClaim(claim, doc, `${note}${item.gbrainFactId ? `; supersedes fact #${item.gbrainFactId}` : ""}`, writes);
+    await commitClaim(claim, doc, `${note}${item.gbrainFactId ? `; supersedes fact #${item.gbrainFactId}` : ""}`, writes, requestId(id, "remember", claim.id));
     claim.status = "committed";
     item.status = "approved";
   } else if (d.action === "retain_both") {
-    await commitClaim(claim, doc, `${note}; retained alongside fact #${item.gbrainFactId ?? "n/a"} (circumstances changed)`, writes);
+    await commitClaim(claim, doc, `${note}; retained alongside fact #${item.gbrainFactId ?? "n/a"} (circumstances changed)`, writes, requestId(id, "remember", claim.id));
     claim.status = "committed";
     if (memoryClaim) {
       memoryClaim.status = "historical";
@@ -114,7 +145,15 @@ export async function decide(id: string, input: z.input<typeof DecisionInput>): 
     }
     writes.push(w);
   }
-  item.decision = { action: d.action, reviewer, note: d.note, at: new Date().toISOString(), writes };
+  // Read back from GBrain: the decision only counts once the brain itself reflects it.
+  const verification = await verifyInGbrain(
+    claim.subject.slug,
+    [d.action !== "reject" ? claim.gbrainFactId : undefined, d.action !== "approve_correction" || !item.gbrainFactId ? item.gbrainFactId : undefined].filter(Boolean) as string[],
+    d.action === "approve_correction" && item.gbrainFactId && ["contradiction", "legitimate_update", "stale_incoming"].includes(item.classification) ? [item.gbrainFactId] : [],
+    d.action === "reject" ? claim.id : undefined,
+  );
+  audit("gbrain", verification.ok ? "gbrain.verified" : "gbrain.verify_failed", `Read-back after ${id}: ${verification.checks.map((c) => `${c.passed ? "✓" : "✗"} ${c.label}`).join("; ")}`, { reviewId: id }, verification);
+  item.decision = { action: d.action, reviewer, note: d.note, at: new Date().toISOString(), writes, verification };
   audit("reviewer", "review.decided", `${reviewer} chose ${d.action} on ${id} (${item.classification})`, { reviewId: id, claimId: claim.id, factId: claim.gbrainFactId }, { writes: writes.map((w) => ({ op: w.op, ok: w.ok, error: w.error })) });
   save();
   return { item: await reviewView(id), writes };

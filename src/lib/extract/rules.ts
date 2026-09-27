@@ -198,7 +198,7 @@ export function extractClaimsRules(doc: SourceDocument): Claim[] {
         rawValue: hit.raw,
         qualifiers: {
           ...(def.contractScoped ? { contractId: sentIds.primary ?? ids.primary, stage } : { stage }),
-          ...(ids.related.length ? { scope: `references ${ids.related.join(", ")}` } : {}),
+          ...(ids.related.length ? { scope: `${/\b(supersed|replac)/i.test(doc.text) ? "supersedes" : "references"} ${ids.related.join(", ")}` } : {}),
         },
         excerpt: doc.text.slice(excerptStart, excerptEnd),
         excerptStart,

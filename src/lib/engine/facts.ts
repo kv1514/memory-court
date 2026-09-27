@@ -13,7 +13,8 @@ export function claimToFactText(c: Claim): string {
   if (c.qualifiers.contractId) q.push(`contract ${c.qualifiers.contractId}`);
   if (c.qualifiers.stage && c.qualifiers.stage !== "unknown") q.push(c.qualifiers.stage);
   const eff = c.effectiveFrom ? `effective ${c.effectiveFrom}` : "";
-  const quals = [q.join(", "), eff].filter(Boolean).join("; ");
+  const lineage = c.qualifiers.scope?.startsWith("supersedes") ? c.qualifiers.scope : "";
+  const quals = [q.join(", "), eff, lineage].filter(Boolean).join("; ");
   const tag = [
     `claim=${c.id}`,
     `pred=${c.predicate}`,

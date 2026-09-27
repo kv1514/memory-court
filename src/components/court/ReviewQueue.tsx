@@ -11,7 +11,7 @@ import type {
 } from "@/lib/types";
 import { apiPost, errMsg } from "../api";
 import { factRef, fmtDate, fmtDateTime, fmtTime, pct, stripMcTag } from "../format";
-import { actionLabel, findingLabel, findingTone, reviewStatusTone, sevRank, sevTone, stageTone } from "../labels";
+import { actionLabel, actionLabelFor, findingLabel, findingTone, reviewStatusTone, sevRank, sevTone, stageTone } from "../labels";
 import { WritesList } from "../shared";
 import { Badge, Button, Dot, Empty, ErrorBox, Icon, Loading, Panel, PanelHeader, cx, inputCls } from "../ui";
 import { FindingCard } from "./FindingCard";
@@ -175,7 +175,7 @@ function PendingCard({
             title={needsOverride(a) && !override ? "Tick “Override quarantine” first" : undefined}
             onClick={() => void act(a)}
           >
-            {actionLabel(a)}
+            {actionLabelFor(a, item.classification)}
           </Button>
         ))}
       </div>
@@ -214,7 +214,7 @@ function DecidedCard({ item, writes, open }: { item: ReviewItemView; writes?: Gb
       <div className="space-y-2.5 border-t border-zinc-800 px-3 py-2.5 text-xs">
         {d ? (
           <div className="text-zinc-400">
-            <span className="font-medium text-zinc-200">{actionLabel(d.action)}</span> by{" "}
+            <span className="font-medium text-zinc-200">{actionLabelFor(d.action, item.classification)}</span> by{" "}
             <span className="text-zinc-200">{d.reviewer || "—"}</span> · {fmtDateTime(d.at)}
             {d.note && <div className="mt-1 italic text-zinc-400">“{d.note}”</div>}
           </div>
@@ -226,6 +226,23 @@ function DecidedCard({ item, writes, open }: { item: ReviewItemView; writes?: Gb
           <div className="mb-1 text-[10.5px] font-medium uppercase tracking-wider text-zinc-500">GBrain writes</div>
           <WritesList writes={w} emptyText="No GBrain writes for this decision." />
         </div>
+        {d?.verification && (
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wider text-zinc-500">
+              Verified by reading GBrain back
+              <Badge tone={d.verification.ok ? "emerald" : "rose"}>{d.verification.ok ? "persisted" : "mismatch"}</Badge>
+            </div>
+            <ul className="space-y-0.5">
+              {d.verification.checks.map((c) => (
+                <li key={c.label} className={c.passed ? "text-emerald-300" : "text-rose-300"}>
+                  {c.passed ? "✓" : "✗"} {c.label}
+                  {c.detail && !c.passed ? <span className="text-zinc-500"> ({c.detail})</span> : null}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-0.5 font-mono text-[10.5px] text-zinc-500">recall(include_expired) · {fmtDateTime(d.verification.at)}</div>
+          </div>
+        )}
       </div>
     </details>
   );

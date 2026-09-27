@@ -103,10 +103,10 @@ async function ensureSourcePage(doc: SourceDocument, entitySlug: string, context
 }
 
 /** Writes one claim to GBrain via `remember` (+ entity page, evidence page + link, timeline entry). */
-export async function commitClaim(c: Claim, doc: SourceDocument, note: string, writes: GbrainWrite[]): Promise<string> {
+export async function commitClaim(c: Claim, doc: SourceDocument, note: string, writes: GbrainWrite[], requestId?: string): Promise<string> {
   await ensureEntityPage(c.subject.slug, c.subject.name, writes);
   await ensureSourcePage(doc, c.subject.slug, `evidence for ${c.predicateLabel} = ${c.value.display} (${c.id})`, writes);
-  const args = { fact: claimToFactText(c), provenance: claimProvenance(c, doc, note), entity: c.subject.slug, kind: "fact" as const };
+  const args = { fact: claimToFactText(c), provenance: claimProvenance(c, doc, note), entity: c.subject.slug, kind: "fact" as const, ...(requestId ? { request_id: requestId } : {}) };
   const w: GbrainWrite = { op: "remember", args, ok: true, at: new Date().toISOString() };
   try {
     const r = await gb.remember(args);

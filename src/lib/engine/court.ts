@@ -98,8 +98,9 @@ export function compareClaims(n: Claim, m: Claim, docs: DocLookup): Comparison {
     const ms = m.qualifiers.stage ?? "unknown";
     checks.push({ name: "negotiation_stage", passed: true, detail: `memory: ${ms} → incoming: ${ns}`, deterministic: true });
     if (NON_BINDING.includes(ms) && BINDING.includes(ns)) {
-      rationale.push(`Memory holds a non-binding ${ms}; the incoming document is a ${ns} agreement. Negotiation progressed — the ${ms} remains true as history.`);
-      return { type: "legitimate_update", severity: "low", title: `Negotiation progressed: ${ms} ${m.value.display} → ${ns} ${n.value.display}`, rationale, checks, uncertainty: Math.min(0.9, uncertainty + 0.05), recommended: "retain_both" };
+      rationale.push(`Memory holds a non-binding ${ms}${m.qualifiers.contractId ? ` (${m.qualifiers.contractId})` : ""}; the incoming document is a ${ns} agreement${n.qualifiers.contractId ? ` (${n.qualifiers.contractId})` : ""}. This is negotiation history, not a contradiction.`);
+      rationale.push(`Proposed current ${n.predicateLabel}: ${n.value.display} (${ns}). Keep the ${ms} (${m.value.display}) in memory as history — it was never wrong, only superseded.`);
+      return { type: "legitimate_update", severity: "low", title: `Negotiation progressed: ${ms} ${m.value.display} → ${ns} ${n.value.display} · propose ${n.value.display} as current`, rationale, checks, uncertainty: Math.min(0.9, uncertainty + 0.05), recommended: "retain_both" };
     }
     if (BINDING.includes(ms) && NON_BINDING.includes(ns)) {
       rationale.push(`Incoming value comes from a non-binding ${ns}; it cannot change the ${ms} terms already in memory.`);

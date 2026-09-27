@@ -158,6 +158,8 @@ export interface ReviewDecision {
   note?: string;
   at: string;
   writes: GbrainWrite[];
+  /** Read-back from GBrain after the writes: proves the decision persisted in the brain, not just in app state. */
+  verification?: { at: string; ok: boolean; checks: { label: string; passed: boolean; detail?: string }[] };
 }
 
 export interface ReviewItem {

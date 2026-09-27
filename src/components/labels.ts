@@ -101,6 +101,17 @@ const ACTION_LABEL: Record<RecommendedAction, string> = {
 };
 export const actionLabel = (a: string) => look<string>(ACTION_LABEL, a, a.replace(/_/g, " "));
 
+/** Button wording depends on what the finding means: a legitimate update is approved by keeping history. */
+export const actionLabelFor = (a: string, classification?: string) => {
+  if (classification === "legitimate_update") {
+    if (a === "retain_both") return "Approve update · keep history";
+    if (a === "approve_correction") return "Replace (treat old as wrong)";
+  }
+  if (classification === "stale_incoming" && a === "retain_both") return "Keep as history";
+  if ((classification === "prompt_injection" || classification === "unsupported") && a === "approve_correction") return "Accept anyway";
+  return actionLabel(a);
+};
+
 const REVIEW_STATUS_TONE: Record<ReviewItem["status"], Tone> = {
   pending: "amber",
   approved: "emerald",

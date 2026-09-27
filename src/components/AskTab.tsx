@@ -10,7 +10,7 @@ import { Badge, Button, Dot, Empty, ErrorBox, Icon, Panel, PanelHeader, SectionL
 
 const SUGGESTIONS = [
   "What is Northwind Logistics' annual contract value?",
-  "What did Helios Dental agree to pay?",
+  "What is Helios Dental's current contract value?",
   "What is Contoso Retail's refund window?",
 ];
 
