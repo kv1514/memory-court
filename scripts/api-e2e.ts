@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- test script inspects untyped JSON responses */
 // HTTP end-to-end test against a RUNNING app (dev or production), through the real API routes.
 //   phase "run":    reset → main demo (quote → signed) → approve → ask; injection; contradiction → correction
 //   phase "verify": run after restarting the server — answers must still come from GBrain

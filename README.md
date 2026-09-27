@@ -18,20 +18,35 @@ Built from scratch at YC's *Own Your Intelligence* hackathon (2026-09-27).
 | **GBrain as the memory** | Existing knowledge is read with GBrain MCP `recall`; approved facts are written with `remember` (provenance required), corrections expire the old fact with `forget` (GBrain keeps it with an audit trail), revisions go to entity-page timelines via `add_timeline_entry`, evidence documents become `sources/*` pages via `put_page` |
 | **Contradiction engine** | Deterministic: entity resolution (longest alias), unit/currency/period/date normalization, contract identity & lineage, negotiation stage, validity time, source authority |
 | **Researcher / Skeptic** | Researcher extracts + retrieves + compares; Skeptic independently re-checks grounding, value-in-evidence, hedging, attribution, injection, similar-entity confusion. Findings carry evidence, checks, and an uncertainty score |
-| **Review queue** | Approve correction · Reject · Retain both (circumstances changed) — each decision performs real GBrain writes and is audited |
+| **Review queue** | Approve correction · Reject · Retain both / *Approve update · keep history* — each decision performs real GBrain writes (with deterministic `request_id`s for idempotent retries), is **read back from GBrain to verify it persisted**, and is audited |
 | **Security** | Prompt-injection screen, instruction sentences never become facts, quarantined documents can't reach memory without an explicit human override, writes only through two code paths |
 | **Evaluation** | 15 fictional cases, baseline vs Memory Court, both run against a real isolated GBrain brain |
 
 ## Three-minute demo
 
-Start the app (see Setup), open http://localhost:3000 and click **Reset demo** (wipes the demo brain, re-seeds 6 memories through the normal pipeline, ~12 s).
+Full script with talking points: **[DEMO.md](DEMO.md)**. Start the app, open http://localhost:3000, click **Reset demo**.
 
-1. **Inspect memory (0:00–0:20).** Left column = live GBrain `recall`. Note *Northwind Logistics — annual contract value: $48,000 / year* (from a CRM note), fact `#1`.
-2. **Conflicting document (0:20–1:00).** Click scenario **A · Conflicting signed agreement** → **Run verification**. Watch the trace: security scan → claim extraction → `recall` from GBrain → normalization → comparison (**1 contradiction**, payment terms **corroborated**) → skeptic checks → decision. The finding shows memory vs incoming evidence side by side and why: same contract `NW-2031`, same effective date, executed agreement (authority 0.90) outranks a CRM note (0.60) → *recommend approve correction*, uncertainty 0.2.
-3. **Approve (1:00–1:20).** In the review queue click **Approve correction**. The decision shows the GBrain writes: `forget #1` (expired, not deleted), `put_page sources/…`, `remember` → new fact, `add_timeline_entry`.
-4. **Ask again (1:20–1:50).** *Ask the agent* → "What is Northwind Logistics' annual contract value?" → **$42,000 / year — per GBrain fact #N**, with the MCP call, provenance, and fact #1 shown as expired history. Tick **Restart the GBrain MCP server process** and ask again: a new `gbrain serve` process (new PID) returns the same answer — it comes from GBrain's persisted brain, not app state.
-5. **Legitimate change (1:50–2:30).** Scenario **B · Quote → signed agreement**: memory has an unsigned $5,000 quote `Q-118`; the signed agreement `HD-2209` says $3,000 and supersedes `Q-118`. Memory Court classifies it as a **legitimate update (negotiation progressed)**, *not* a contradiction → **Retain both**. (Scenario **C** shows a policy change effective later.)
-6. **Attack + evidence (2:30–3:00).** Scenario **D · Prompt-injection attempt** is quarantined (instruction spans ignored; approve is refused without an explicit override). Then show **Evaluations** and the hash-chained **Audit log**.
+1. **Memory (GBrain):** Helios Dental Group — *contract value $5,000 (Quote Q-118)*, from sales-call notes saying the customer "verbally agreed" to an unsigned quote.
+2. **Scenario A — signed agreement after the quote:** HD-2209 says **$3,000** and supersedes Q-118. Memory Court retrieves fact #6 from GBrain and classifies **negotiation history, not a contradiction**. It proposes $3,000 as the current value and keeps the quote as history. The old fact stays active until a human decides.
+3. **Approve update · keep history:** the GBrain writes happen, then Memory Court **reads GBrain back** to verify: the new fact is active and the quote is preserved.
+4. **Ask the agent** (optionally restarting GBrain's MCP server first): *"$3,000 — per GBrain fact #N. Source: 'Signed Service Agreement HD-2209'."*
+5. **Scenario B — prompt injection:** the document is quarantined, instruction sentences are never extracted, approval without an explicit override returns 403, and the rejection is verified in GBrain.
+6. **Scenario C — genuine contradiction:** the executed MSA says $42,000 and a CRM note says $48,000 for the same contract and period. *Approve correction* expires the old GBrain fact with a reason; it is not deleted.
+
+## What we built today, and what it adds beyond GBrain
+
+GBrain is the memory: storage, retrieval, facts with provenance, pages, timelines. On its own:
+* `remember` accepts whatever the agent writes. GBrain's documented supersession rule (same entity and kind, embedding similarity above a threshold, different text) replaces the older fact automatically; there's no evidence check or approval step. Without embeddings, conflicting facts simply coexist.
+* The contradiction tooling (`find_contradictions`) reports results of an **offline** probe run after the fact. It does not gate writes.
+
+Memory Court, built during the hackathon, is the **gate before the write**:
+* structured claims with verbatim, offset-checked evidence
+* deterministic reasoning over contract identity, negotiation stage, validity time, units and entity disambiguation
+* an independent Skeptic
+* quarantine of instruction-bearing documents
+* a human decision for anything disputed
+* GBrain read-back verification after every decision
+* a tamper-evident audit chain
 
 ## Architecture
 
@@ -176,6 +191,9 @@ Optional LLM extraction: put `ANTHROPIC_API_KEY=...` (and optionally `MEMORY_COU
 ```bash
 npm test            # 9 unit tests: normalization, entity resolution, injection, extraction, engine, GBrain fact round-trip
 npm run e2e         # full workflow on an isolated real GBrain brain: seed → ingest 7 scenarios → decisions → reconnect → ask
+npm run api-e2e -- run      # 23 HTTP checks through the real API routes (app running on :3000)
+# restart the app, then:
+npm run api-e2e -- verify   # persistence across a fresh app session + fresh gbrain serve
 npm run eval        # baseline vs Memory Court, writes .data/eval-report.json (also runnable from the Evaluations tab)
 npm run smoke:gbrain  # GBrain MCP connectivity: remember / recall / forget / put_page / timeline
 ```

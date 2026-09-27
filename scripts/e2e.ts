@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- test script inspects untyped JSON responses */
 // End-to-end check of the full workflow against a real, isolated GBrain brain.
 import path from "node:path";
 import fs from "node:fs";

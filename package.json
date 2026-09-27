@@ -11,7 +11,8 @@
     "eval": "node --import tsx scripts/eval.ts",
     "e2e": "node --import tsx scripts/e2e.ts",
     "smoke:gbrain": "node --import tsx scripts/gbrain-smoke.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "api-e2e": "node --import tsx scripts/api-e2e.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

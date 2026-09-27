@@ -75,8 +75,6 @@ export interface Sentence { text: string; start: number; end: number }
 
 export function splitSentences(text: string): Sentence[] {
   const out: Sentence[] = [];
-  const re = /[^.!?\n]+(?:[.!?](?!\d)(?<!\b(?:Inc|Ltd|Corp|Co|No|vs|approx|e\.g|i\.e)\.)|(?=\n)|$)+/g;
-  let buf: Sentence | null = null;
   for (const m of text.matchAll(/[^\n]+/g)) {
     // split each line on sentence boundaries that are followed by whitespace + capital/digit
     const line = m[0];
@@ -91,8 +89,6 @@ export function splitSentences(text: string): Sentence[] {
     const seg = line.slice(last);
     if (seg.trim()) out.push({ text: seg.trim(), start: base + last + (seg.length - seg.trimStart().length), end: base + line.length - (seg.length - seg.trimEnd().length) });
   }
-  void re;
-  void buf;
   return out;
 }
 

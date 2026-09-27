@@ -103,12 +103,17 @@ export default function Dashboard() {
       }
     };
     // First load always runs (even in a background tab); later polls skip hidden tabs.
-    inflightRef.current = true;
-    void loadAll().finally(() => {
-      inflightRef.current = false;
-    });
+    const first = window.setTimeout(() => {
+      inflightRef.current = true;
+      void loadAll().finally(() => {
+        inflightRef.current = false;
+      });
+    }, 0);
     const id = window.setInterval(() => void tick(), POLL_MS);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(id);
+    };
   }, [loadAll]);
 
   useEffect(() => {
