@@ -2,7 +2,7 @@
 
 import type { Evidence, Finding } from "@/lib/types";
 import { clamp01, factRef, fmtDate } from "../format";
-import { actionLabel, findingLabel, findingTone, sevBorder, sevTone, stageTone } from "../labels";
+import { actionLabelFor, findingLabel, findingTone, sevBorder, sevTone, stageTone } from "../labels";
 import { Badge, Dot, Meter, cx, type Tone } from "../ui";
 
 export function RaisedBy({ role }: { role: string }) {
@@ -140,7 +140,7 @@ export function FindingCard({ finding: f, compact = false }: { finding: Finding;
         <div className="flex items-center gap-2 text-xs">
           <span className="text-zinc-500">Recommended</span>
           <span className="rounded-md bg-zinc-100/10 px-1.5 py-0.5 font-medium text-zinc-100 ring-1 ring-inset ring-zinc-500/40">
-            {actionLabel(f.recommendedAction)}
+            {actionLabelFor(f.recommendedAction, f.type)}
           </span>
         </div>
       </footer>

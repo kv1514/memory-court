@@ -11,7 +11,7 @@ import type {
 } from "@/lib/types";
 import { apiPost, errMsg } from "../api";
 import { factRef, fmtDate, fmtDateTime, fmtTime, pct, stripMcTag } from "../format";
-import { actionLabel, actionLabelFor, findingLabel, findingTone, reviewStatusTone, sevRank, sevTone, stageTone } from "../labels";
+import { actionLabelFor, findingLabel, findingTone, reviewStatusTone, sevRank, sevTone, stageTone } from "../labels";
 import { WritesList } from "../shared";
 import { Badge, Button, Dot, Empty, ErrorBox, Icon, Loading, Panel, PanelHeader, cx, inputCls } from "../ui";
 import { FindingCard } from "./FindingCard";
@@ -130,7 +130,7 @@ function PendingCard({
       <div className="mt-2.5 flex items-center gap-2 text-xs">
         <span className="text-zinc-500">Recommended</span>
         <span className="rounded-md bg-zinc-100/10 px-1.5 py-0.5 font-medium text-zinc-100 ring-1 ring-inset ring-zinc-500/40">
-          {actionLabel(item.recommended)}
+          {actionLabelFor(item.recommended, item.classification)}
         </span>
       </div>
 
