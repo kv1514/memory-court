@@ -10,7 +10,8 @@ export const DATA_DIR = process.env.MEMORY_COURT_DATA_DIR ?? path.join(root, ".d
  * GBRAIN_HOME is the PARENT of `.gbrain` (per GBrain docs). Memory Court uses its own brain by default
  * so the demo never touches the operator's personal brain; point it at $HOME to use that brain instead.
  */
-export const GBRAIN_HOME = process.env.MEMORY_COURT_GBRAIN_HOME ?? path.join(DATA_DIR, "gbrain-home");
+// GBrain refuses to create its content root inside another Git worktree, so the brain lives outside the repo.
+export const GBRAIN_HOME = process.env.MEMORY_COURT_GBRAIN_HOME ?? path.join(os.homedir(), ".memory-court", "gbrain-home");
 
 export const BUN_BIN = process.env.MEMORY_COURT_BUN ?? path.join(os.homedir(), ".bun", "bin", "bun");
 export const GBRAIN_BIN = process.env.MEMORY_COURT_GBRAIN ?? path.join(os.homedir(), ".bun", "bin", "gbrain");

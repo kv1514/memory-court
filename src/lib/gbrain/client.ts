@@ -57,7 +57,7 @@ function gbrainEnv(home: string): Record<string, string> {
 
 function run(cmd: string, args: string[], env: Record<string, string>, timeoutMs = 180_000): Promise<{ code: number; out: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(cmd, args, { env: env as NodeJS.ProcessEnv, stdio: ["ignore", "pipe", "pipe"] as const });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (out += d));
