@@ -19,6 +19,7 @@ export function AskTab() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [res, setRes] = useState<AskResponse | null>(null);
+  const [fresh, setFresh] = useState(false);
   const elapsed = useElapsed(loading);
 
   const ask = async (q: string) => {
@@ -28,7 +29,7 @@ export function AskTab() {
     setLoading(true);
     setErr(null);
     try {
-      setRes(await apiPost<AskResponse>("/api/ask", { question: text }));
+      setRes(await apiPost<AskResponse>("/api/ask", { question: text, fresh }));
     } catch (e) {
       setErr(errMsg(e));
     } finally {
@@ -66,6 +67,10 @@ export function AskTab() {
               Ask
             </Button>
           </form>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
+            <input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} className="accent-emerald-500" />
+            Restart the GBrain MCP server process before answering (proves the answer is read from GBrain&apos;s persisted brain, not app state)
+          </label>
           <div className="flex flex-wrap gap-1.5">
             {SUGGESTIONS.map((s) => (
               <button
@@ -113,6 +118,11 @@ export function AskTab() {
                   {res.retrieval?.factCount ?? 0} facts · {fmtMs(res.retrieval?.ms)}
                 </span>
                 <span className="text-emerald-300/60">{fmtDateTime(res.retrieval?.at)}</span>
+                {res.retrieval?.freshProcess && (
+                  <span className="rounded border border-emerald-500/30 px-1.5 py-0.5 font-mono text-[10.5px] text-emerald-300">
+                    fresh gbrain serve process{res.retrieval.serverPid ? ` · pid ${res.retrieval.serverPid}` : ""}
+                  </span>
+                )}
                 {res.retrieval?.args && (
                   <code className="w-full truncate font-mono text-[10.5px] text-emerald-300/70" title={safeJson(res.retrieval.args, 2)}>
                     recall({safeJson(res.retrieval.args)})

@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "eval": "node --import tsx scripts/eval.ts",
+    "e2e": "node --import tsx scripts/e2e.ts",
+    "smoke:gbrain": "node --import tsx scripts/gbrain-smoke.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

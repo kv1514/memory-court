@@ -294,7 +294,7 @@ export interface AskResponse {
   answer: string;
   current?: MemoryFact;
   history: MemoryFact[]; // other matching facts incl. expired/superseded
-  retrieval: { tool: "recall"; args: Record<string, unknown>; factCount: number; at: string; ms: number };
+  retrieval: { tool: "recall"; args: Record<string, unknown>; factCount: number; at: string; ms: number; freshProcess?: boolean; serverPid?: number };
   reasoning: string[];
 }
 

@@ -102,7 +102,11 @@ export default function Dashboard() {
         inflightRef.current = false;
       }
     };
-    void tick();
+    // First load always runs (even in a background tab); later polls skip hidden tabs.
+    inflightRef.current = true;
+    void loadAll().finally(() => {
+      inflightRef.current = false;
+    });
     const id = window.setInterval(() => void tick(), POLL_MS);
     return () => window.clearInterval(id);
   }, [loadAll]);

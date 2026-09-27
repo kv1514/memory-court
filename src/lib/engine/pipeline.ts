@@ -75,9 +75,37 @@ async function timeline(slug: string, summary: string, detail: string, source: s
   writes.push(w);
 }
 
-/** Writes one claim to GBrain via `remember` (+ entity page + timeline entry). */
+/**
+ * Stores the evidence document as a GBrain page (sources/<doc-id>) whose body wikilinks the entity page; GBrain
+ * auto-links wikilinks on put_page (its `add_link` MCP op refuses managed brains), so evidence is navigable in the graph. Quarantined documents are stored as metadata only (their text never enters memory).
+ */
+async function ensureSourcePage(doc: SourceDocument, entitySlug: string, context: string, writes: GbrainWrite[]) {
+  const slug = `sources/${doc.id.toLowerCase()}`;
+  if (!pages.has(slug)) {
+    const body = doc.injection.flagged
+      ? "_Document text withheld: quarantined by Memory Court's prompt-injection screen._"
+      : doc.text
+          .split("\n")
+          .map((l) => `> ${l}`)
+          .join("\n");
+    const content = `---\ntype: source\ntitle: ${JSON.stringify(doc.title)}\nstage: ${doc.stage}\n${doc.documentDate ? `date: ${doc.documentDate}\n` : ""}sha256: ${doc.sha256}\ntags: [memory-court, evidence]\n---\n# ${doc.title}\n\nEvidence document recorded by Memory Court (${doc.id}, received ${doc.receivedAt}${doc.author ? `, author ${doc.author}` : ""}). Evidence about [[${entitySlug}]].\n\nUntrusted source text, quoted verbatim:\n\n${body}\n`;
+    const w: GbrainWrite = { op: "put_page", args: { slug }, ok: true, at: new Date().toISOString() };
+    try {
+      w.result = await gb.putPage(slug, content);
+    } catch (e) {
+      w.ok = false;
+      w.error = (e as Error).message;
+    }
+    writes.push(w);
+    pages.add(slug);
+  }
+  void context;
+}
+
+/** Writes one claim to GBrain via `remember` (+ entity page, evidence page + link, timeline entry). */
 export async function commitClaim(c: Claim, doc: SourceDocument, note: string, writes: GbrainWrite[]): Promise<string> {
   await ensureEntityPage(c.subject.slug, c.subject.name, writes);
+  await ensureSourcePage(doc, c.subject.slug, `evidence for ${c.predicateLabel} = ${c.value.display} (${c.id})`, writes);
   const args = { fact: claimToFactText(c), provenance: claimProvenance(c, doc, note), entity: c.subject.slug, kind: "fact" as const };
   const w: GbrainWrite = { op: "remember", args, ok: true, at: new Date().toISOString() };
   try {

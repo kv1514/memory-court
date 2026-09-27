@@ -30,6 +30,7 @@ async function main() {
   if (b) { const d = await decide(b.id, { action: "retain_both", reviewer: "e2e" }); console.log("decision B writes:", d.writes.map((w: any) => `${w.op}:${w.ok}`).join(", ")); }
   const inj = results["injection"].reviewItems[0];
   if (inj) { try { await decide(inj.id, { action: "approve_correction" }); console.log("INJECTION APPROVED WITHOUT OVERRIDE — BUG"); } catch (e) { console.log("injection approve without override blocked:", (e as Error).message.slice(0, 80)); } }
+  console.log("backlinks(northwind):", JSON.stringify(await gb.callTool("get_backlinks", { slug: "companies/northwind-logistics" })).slice(0, 300));
   await gb.disconnect();
   // restart: new connection, answer must come from GBrain
   const q = await ask("What is Northwind Logistics' annual contract value?");
