@@ -43,7 +43,7 @@ const RULES: Rule[] = [
   { predicate: "pricing.per_seat", trigger: /\bper (seat|user|licen[cs]e)\b|\bseat price\b/i, values: (s) => findMoney(s) },
   {
     predicate: "contract.value",
-    trigger: /\b(fee|fees|price|priced|value|total|amount|cost|quote|quoted|quotation|agreement|contract|subscription|pay|payable|invoice)\b/i,
+    trigger: /\b(fee|fees|price|priced|value|total|amount|cost|quote|quoted|quotation|agreement|contract|subscription|pay|payable|invoice|billed|billing|charged)\b/i,
     values: (s) => findMoney(s),
   },
 ];

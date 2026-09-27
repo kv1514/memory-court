@@ -142,7 +142,10 @@ export function toAnnual(v: NormalizedValue): NormalizedValue {
   return { ...v, amount, period: "year", display: `${fmtMoney(amount, v.currency ?? "USD")} / year (from ${fmtMoney(v.amount, v.currency ?? "USD")} / month)` };
 }
 
-/** Deterministic equality with a 0.5% relative tolerance for numbers; case-insensitive for text. */
+/**
+ * Deterministic equality. Money, percentages and durations must match exactly (a 99.9% vs 99.5% SLA is a real
+ * difference); only unit-converted physical quantities get a 0.5% tolerance for conversion rounding.
+ */
 export function valuesEqual(a: NormalizedValue, b: NormalizedValue): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === "text" || a.kind === "date") return (a.text ?? "").trim().toLowerCase() === (b.text ?? "").trim().toLowerCase();
@@ -151,8 +154,9 @@ export function valuesEqual(a: NormalizedValue, b: NormalizedValue): boolean {
   const x = a.amount ?? NaN;
   const y = b.amount ?? NaN;
   if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
-  if (x === y) return true;
-  return Math.abs(x - y) / Math.max(Math.abs(x), Math.abs(y)) <= 0.005;
+  if (a.kind === "money") return Math.abs(x - y) < 0.01;
+  if (a.kind === "quantity") return x === y || Math.abs(x - y) / Math.max(Math.abs(x), Math.abs(y)) <= 0.005;
+  return Math.abs(x - y) < 1e-9;
 }
 
 /** Compact machine-readable form used inside GBrain fact text. */
