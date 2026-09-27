@@ -12,7 +12,8 @@
     "e2e": "node --import tsx scripts/e2e.ts",
     "smoke:gbrain": "node --import tsx scripts/gbrain-smoke.ts",
     "typecheck": "tsc --noEmit",
-    "api-e2e": "node --import tsx scripts/api-e2e.ts"
+    "api-e2e": "node --import tsx scripts/api-e2e.ts",
+    "doctor": "node --import tsx scripts/doctor.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

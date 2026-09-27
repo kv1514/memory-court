@@ -43,3 +43,9 @@ next-env.d.ts
 # memory court runtime data
 /.data/
 .next-dev.log
+
+# logs
+*.log
+.next-*.log
+# allow the env template
+!.env.example

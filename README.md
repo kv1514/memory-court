@@ -174,17 +174,20 @@ Requirements: macOS/Linux, [Bun](https://bun.sh) ≥ 1.3 (GBrain runtime), Node.
 ```bash
 curl -fsSL https://bun.sh/install | bash                      # Bun
 bun install -g github:garrytan/gbrain#latest-stable           # GBrain (NOT the npm package named gbrain)
-git clone <this repo> memory-court && cd memory-court
+git clone https://github.com/kv1514/memory-court.git && cd memory-court
 npm install
+npm run doctor                                                # checks Node, Bun, GBrain and GBrain's MCP server
 npm run dev                                                   # http://localhost:3000 → click "Reset demo"
 ```
+
+For a faster, more stable demo use the production build: `npm run build && npm start`.
 
 Memory Court creates its own brain at `~/.memory-court/gbrain-home` on first use (override with
 `MEMORY_COURT_GBRAIN_HOME`; `MEMORY_COURT_BUN` / `MEMORY_COURT_GBRAIN` override binary paths). PGLite is single-writer:
 while the app runs it owns that brain, so use `gbrain` CLI commands against it only after stopping the app.
 
-Optional LLM extraction: put `ANTHROPIC_API_KEY=...` (and optionally `MEMORY_COURT_MODEL`, default `claude-sonnet-5`) in
-`.env.local`. Without a key the deterministic extractor is used and the UI says so.
+Optional LLM extraction: copy `.env.example` to `.env.local` and set `ANTHROPIC_API_KEY` (and optionally
+`MEMORY_COURT_MODEL`, default `claude-sonnet-5`). Without a key the deterministic extractor is used and the UI says so.
 
 ### Tests
 
